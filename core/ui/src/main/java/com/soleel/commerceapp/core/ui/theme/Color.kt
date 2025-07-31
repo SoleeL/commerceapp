@@ -1,4 +1,4 @@
-package com.soleel.commerceapp.ui.theme
+package com.soleel.commerceapp.core.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
