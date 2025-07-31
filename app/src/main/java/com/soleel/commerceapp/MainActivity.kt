@@ -1,7 +1,7 @@
 package com.soleel.commerceapp
 
+import android.app.Activity
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
@@ -40,10 +40,9 @@ import androidx.compose.ui.unit.dp
 import com.soleel.commerceapp.core.model.intentsale.IntentSaleRequestExternal
 import com.soleel.commerceapp.core.model.intentsale.IntentSaleResultExternal
 import com.soleel.commerceapp.core.model.intentsale.IntentSaleResultInternal
+import com.soleel.commerceapp.core.model.intentsale.IntentSaleStatusEnum
 import com.soleel.commerceapp.core.model.intentsale.toInternal
 import com.soleel.commerceapp.core.ui.theme.CommerceappTheme
-import kotlinx.serialization.encodeToString
-import androidx.core.net.toUri
 import kotlinx.serialization.json.Json
 
 class MainActivity : ComponentActivity() {
@@ -59,7 +58,6 @@ class MainActivity : ComponentActivity() {
             ActivityResultContracts.StartActivityForResult(),
             this::onActivityResult
         )
-
 
         enableEdgeToEdge()
         setContent {
@@ -77,11 +75,13 @@ class MainActivity : ComponentActivity() {
                     },
                     modifier = Modifier.fillMaxSize(),
                     content = { paddingValues ->
-                        IntentRequestFormScreen(
-                            paddingValues = paddingValues,
-                            onSendRequest = ::sendIntentToOtherApp,
+                        IntentResultAlertDialog(
                             intentSaleResultInternal = intentSaleResult,
                             onDismissResult = { intentSaleResult = null }
+                        )
+                        IntentRequestFormScreen(
+                            paddingValues = paddingValues,
+                            onSendRequest = ::sendIntentToPaymentApp
                         )
                     }
                 )
@@ -89,18 +89,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun onActivityResult(result: ActivityResult) {
-        if (result.resultCode == RESULT_OK) {
-            val resultJson = result.data?.getStringExtra("result")
-            if (resultJson != null) {
-                val intentSaleResultExternal: IntentSaleResultExternal =
-                    Json.decodeFromString<IntentSaleResultExternal>(resultJson)
-                intentSaleResult = intentSaleResultExternal.toInternal()
-            }
-        }
-    }
-
-    private fun sendIntentToOtherApp(
+    private fun sendIntentToPaymentApp(
         commerceId: String,
         totalAmount: Int,
         paymentMethod: Int,
@@ -108,25 +97,17 @@ class MainActivity : ComponentActivity() {
         creditInstalments: Int,
         debitChange: Int
     ) {
-
-        val deepLinkUri = buildString {
-            append("paymentapp://process_sale?")
-            append("commerceId=${Uri.encode(commerceId)}&")
-            append("totalAmount=$totalAmount&")
-            append("paymentMethod=$paymentMethod&")
-            append("cashChange=$cashChange&")
-            append("creditInstalments=$creditInstalments&")
-            append("debitChange=$debitChange")
-        }
-
-        val intent = Intent(Intent.ACTION_VIEW).apply {
-            data = deepLinkUri.toUri()
-            if (BuildConfig.DEBUG) {
-                setPackage("com.soleel.paymentapp.debug")
-            } else {
-                setPackage("com.soleel.paymentapp")
+        val intent = Intent("com.soleel.paymentapp.PROCESS_INTENT_TO_SALE").apply(
+            block = {
+                putExtra("commerceId", commerceId)
+                putExtra("totalAmount", totalAmount)
+                putExtra("paymentMethod", paymentMethod)
+                putExtra("cashChange", cashChange)
+                putExtra("creditInstalments", creditInstalments)
+                putExtra("debitChange", debitChange)
+                setPackage(if (BuildConfig.DEBUG) "com.soleel.paymentapp.debug" else "com.soleel.paymentapp")
             }
-        }
+        )
 
         if (intent.resolveActivity(packageManager) != null) {
             sendIntentLauncher.launch(intent)
@@ -134,19 +115,36 @@ class MainActivity : ComponentActivity() {
             Toast.makeText(this, "No se encontró app destino", Toast.LENGTH_LONG).show()
         }
     }
+
+    private fun onActivityResult(result: ActivityResult) {
+        if (result.resultCode == Activity.RESULT_OK) {
+            val data = result.data
+            val bundle = data?.extras
+
+            val saleId = bundle?.getString("saleId")
+            val status: Int = bundle?.getInt("status") ?: IntentSaleStatusEnum.ERROR.id
+            val message = bundle?.getString("message")
+            val errorCode = bundle?.getString("errorCode")
+
+            intentSaleResult = IntentSaleResultInternal(
+                saleId = saleId,
+                status = IntentSaleStatusEnum.fromId(status),
+                message = message,
+                errorCode = errorCode,
+            )
+        } else {
+            intentSaleResult = IntentSaleResultInternal(
+                saleId = "",
+                status = IntentSaleStatusEnum.CANCELLED,
+                message = "El proceso termino cancelado o falló",
+                errorCode = "ERR_INVALID_CANCEL",
+            )
+        }
+    }
 }
 
 @Composable
-fun IntentRequestFormScreen(
-    paddingValues: PaddingValues,
-    onSendRequest: (
-        commerceId: String,
-        totalAmount: Int,
-        paymentMethod: Int,
-        cashChange: Int,
-        creditInstalments: Int,
-        debitChange: Int
-    ) -> Unit,
+fun IntentResultAlertDialog(
     intentSaleResultInternal: IntentSaleResultInternal?,
     onDismissResult: () -> Unit
 ) {
@@ -171,7 +169,20 @@ fun IntentRequestFormScreen(
             }
         )
     }
+}
 
+@Composable
+fun IntentRequestFormScreen(
+    paddingValues: PaddingValues,
+    onSendRequest: (
+        commerceId: String,
+        totalAmount: Int,
+        paymentMethod: Int,
+        cashChange: Int,
+        creditInstalments: Int,
+        debitChange: Int
+    ) -> Unit
+) {
     var commerceId by remember { mutableStateOf("") }
     var totalAmount by remember { mutableStateOf("") }
     var paymentMethod by remember { mutableStateOf("-1") }

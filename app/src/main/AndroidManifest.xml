@@ -4,9 +4,6 @@
 
     <queries>
         <package android:name="com.soleel.paymentapp" />
-    </queries>
-
-    <queries>
         <package android:name="com.soleel.paymentapp.debug" />
     </queries>
 
