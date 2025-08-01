@@ -38,12 +38,9 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.soleel.commerceapp.core.model.intentsale.IntentSaleRequestExternal
-import com.soleel.commerceapp.core.model.intentsale.IntentSaleResultExternal
 import com.soleel.commerceapp.core.model.intentsale.IntentSaleResultInternal
 import com.soleel.commerceapp.core.model.intentsale.IntentSaleStatusEnum
-import com.soleel.commerceapp.core.model.intentsale.toInternal
 import com.soleel.commerceapp.core.ui.theme.CommerceappTheme
-import kotlinx.serialization.json.Json
 
 class MainActivity : ComponentActivity() {
 

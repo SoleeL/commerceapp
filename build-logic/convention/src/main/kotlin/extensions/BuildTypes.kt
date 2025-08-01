@@ -29,7 +29,7 @@ fun Project.configureBuildTypes(
                 if (extension is ApplicationExtension) {
                     extension.buildTypes.getByName("debug").apply {
                         applicationIdSuffix = ".debug"
-                        resValue("string", "app_name", "payment_app_debug")
+                        resValue("string", "app_name", "commerce_app_debug")
                     }
                 }
 
@@ -42,7 +42,7 @@ fun Project.configureBuildTypes(
                 if (extension is ApplicationExtension) {
                     extension.buildTypes.getByName("demo").apply {
                         applicationIdSuffix = ".demo"
-                        resValue("string", "app_name", "payment_app_demo")
+                        resValue("string", "app_name", "commerce_app_demo")
                     }
                 }
 
