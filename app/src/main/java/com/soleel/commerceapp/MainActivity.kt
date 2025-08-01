@@ -97,6 +97,7 @@ class MainActivity : ComponentActivity() {
         val intent = Intent("com.soleel.paymentapp.PROCESS_INTENT_TO_SALE").apply(
             block = {
                 putExtra("commerceId", commerceId)
+                putExtra("source", BuildConfig.APPLICATION_ID)
                 putExtra("totalAmount", totalAmount)
                 putExtra("paymentMethod", paymentMethod)
                 putExtra("cashChange", cashChange)
